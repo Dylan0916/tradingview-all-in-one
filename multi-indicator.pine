@@ -2,7 +2,7 @@
 // © TradingView Custom Indicator
 
 //@version=5
-indicator("All-in-One (EMA + MACD)", overlay=false)
+indicator("All-in-One (EMA + WMA + MACD)", overlay=false)
 
 // ==================== EMA Settings ====================
 emaGroup = "EMA Settings"
@@ -17,6 +17,11 @@ ema3Length = input.int(100, "EMA 3 Length", minval=1, group=emaGroup)
 
 showEma4 = input.bool(true, "Show EMA 4", group=emaGroup)
 ema4Length = input.int(200, "EMA 4 Length", minval=1, group=emaGroup)
+
+// ==================== WMA Settings ====================
+wmaGroup = "WMA Settings"
+showWma = input.bool(true, "Show WMA", group=wmaGroup)
+wmaLength = input.int(300, "WMA Length", minval=1, group=wmaGroup)
 
 // ==================== MACD Settings ====================
 macdGroup = "MACD Settings"
@@ -38,6 +43,10 @@ plot(showEma2 ? ema2 : na, "EMA 2", #ff9800, 1, force_overlay=true)
 plot(showEma3 ? ema3 : na, "EMA 3", #ab47bc, 1, force_overlay=true)
 plot(showEma4 ? ema4 : na, "EMA 4", #ef5350, 4, force_overlay=true)
 
+// ==================== WMA Calculations & Plots (Main Chart) ====================
+wma = ta.wma(close, wmaLength)
+plot(showWma ? wma : na, "WMA 300", #4caf50, 2, force_overlay=true)
+
 // ==================== MACD Calculations ====================
 [macdLine, signalLine, histLine] = ta.macd(macdSource, macdFastLength, macdSlowLength, macdSignalLength)
 
@@ -45,9 +54,9 @@ plot(showEma4 ? ema4 : na, "EMA 4", #ef5350, 4, force_overlay=true)
 histColor = histLine >= histLine[1] ? #26A69A : #EF5350
 
 // Plot MACD (using original values without normalization)
-plot(showMacd ? histLine : na, "Histogram", histColor, style=plot.style_columns)
-plot(showMacd ? macdLine : na, "MACD", #2962FF, 1)
-plot(showMacd ? signalLine : na, "Signal", #FF6D00, 1)
+plot(showMacd ? histLine : na, "MACD Histogram", histColor, style=plot.style_columns)
+plot(showMacd ? macdLine : na, "MACD Line", #2962FF, 1)
+plot(showMacd ? signalLine : na, "MACD Signal", #FF6D00, 1)
 
 // ==================== Reference Lines ====================
-hline(0, "MACD Zero", color.gray, hline.style_dashed)
+hline(0, "MACD Zero Line", color.gray, hline.style_dashed)
