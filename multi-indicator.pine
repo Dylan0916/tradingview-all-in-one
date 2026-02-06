@@ -2,29 +2,21 @@
 // © TradingView Custom Indicator
 
 //@version=5
-indicator("All-in-One (EMA + MACD + RSI)", overlay=false)
+indicator("All-in-One (EMA + MACD)", overlay=false)
 
 // ==================== EMA Settings ====================
 emaGroup = "EMA Settings"
 showEma1 = input.bool(true, "Show EMA 1", group=emaGroup)
 ema1Length = input.int(20, "EMA 1 Length", minval=1, group=emaGroup)
-ema1Color = input.color(#00bcd4, "EMA 1 Color", group=emaGroup)
-ema1Width = input.int(1, "EMA 1 Width", minval=1, maxval=5, group=emaGroup)
 
 showEma2 = input.bool(true, "Show EMA 2", group=emaGroup)
 ema2Length = input.int(50, "EMA 2 Length", minval=1, group=emaGroup)
-ema2Color = input.color(#ff9800, "EMA 2 Color", group=emaGroup)
-ema2Width = input.int(1, "EMA 2 Width", minval=1, maxval=5, group=emaGroup)
 
 showEma3 = input.bool(true, "Show EMA 3", group=emaGroup)
 ema3Length = input.int(100, "EMA 3 Length", minval=1, group=emaGroup)
-ema3Color = input.color(#ab47bc, "EMA 3 Color", group=emaGroup)
-ema3Width = input.int(1, "EMA 3 Width", minval=1, maxval=5, group=emaGroup)
 
 showEma4 = input.bool(true, "Show EMA 4", group=emaGroup)
 ema4Length = input.int(200, "EMA 4 Length", minval=1, group=emaGroup)
-ema4Color = input.color(#ef5350, "EMA 4 Color", group=emaGroup)
-ema4Width = input.int(2, "EMA 4 Width", minval=1, maxval=5, group=emaGroup)
 
 // ==================== MACD Settings ====================
 macdGroup = "MACD Settings"
@@ -34,70 +26,28 @@ macdSlowLength = input.int(26, "Slow Length", minval=1, group=macdGroup)
 macdSignalLength = input.int(9, "Signal Length", minval=1, group=macdGroup)
 macdSource = input.source(close, "MACD Source", group=macdGroup)
 
-// ==================== RSI Settings ====================
-rsiGroup = "RSI Settings"
-showRsi = input.bool(true, "Show RSI", group=rsiGroup)
-rsiLength = input.int(14, "RSI Length", minval=1, group=rsiGroup)
-rsiSource = input.source(close, "RSI Source", group=rsiGroup)
-rsiOverbought = input.int(70, "Overbought", minval=50, maxval=100, group=rsiGroup)
-rsiOversold = input.int(30, "Oversold", minval=0, maxval=50, group=rsiGroup)
-
 // ==================== EMA Calculations & Plots (Main Chart) ====================
 ema1 = ta.ema(close, ema1Length)
 ema2 = ta.ema(close, ema2Length)
 ema3 = ta.ema(close, ema3Length)
 ema4 = ta.ema(close, ema4Length)
 
-plot(showEma1 ? ema1 : na, "EMA 1", ema1Color, ema1Width, force_overlay=true)
-plot(showEma2 ? ema2 : na, "EMA 2", ema2Color, ema2Width, force_overlay=true)
-plot(showEma3 ? ema3 : na, "EMA 3", ema3Color, ema3Width, force_overlay=true)
-plot(showEma4 ? ema4 : na, "EMA 4", ema4Color, ema4Width, force_overlay=true)
+// Color and width are configured in "Style" tab, not "Inputs"
+plot(showEma1 ? ema1 : na, "EMA 1", #00bcd4, 1, force_overlay=true)
+plot(showEma2 ? ema2 : na, "EMA 2", #ff9800, 1, force_overlay=true)
+plot(showEma3 ? ema3 : na, "EMA 3", #ab47bc, 1, force_overlay=true)
+plot(showEma4 ? ema4 : na, "EMA 4", #ef5350, 4, force_overlay=true)
 
-// ==================== Scaling Constants ====================
-// MACD: bottom zone (-80 to +80), RSI: top zone (120 to 220)
-// More vertical space for better readability
-rsiOffset = 120  // RSI will be drawn at 120 + rsi = 120 to 220 range
-dividerLine = 100  // Visual divider between MACD and RSI
-
-// ==================== MACD Calculations (Bottom Zone: -50 to +50) ====================
+// ==================== MACD Calculations ====================
 [macdLine, signalLine, histLine] = ta.macd(macdSource, macdFastLength, macdSlowLength, macdSignalLength)
 
-// Normalize MACD to fit in -70 to +70 range (more vertical space)
-macdMax = ta.highest(math.max(math.abs(macdLine), math.abs(signalLine), math.abs(histLine)), 200)
-macdScale = macdMax != 0 ? 70 / macdMax : 1
-macdNorm = macdLine * macdScale
-signalNorm = signalLine * macdScale
-histNorm = histLine * macdScale
+// Histogram color (green when rising, red when falling)
+histColor = histLine >= histLine[1] ? #26A69A : #EF5350
 
-// Histogram color
-histColor = histNorm >= histNorm[1] ? #26A69A : #EF5350
-
-// Plot MACD (bottom zone, centered at 0)
-plot(showMacd ? histNorm : na, "Histogram", histColor, style=plot.style_columns)
-plot(showMacd ? macdNorm : na, "MACD", #2962FF, 1)
-plot(showMacd ? signalNorm : na, "Signal", #FF6D00, 1)
-
-// ==================== RSI Calculations (Top Zone: 50 to 150) ====================
-rsiValue = ta.rsi(rsiSource, rsiLength)
-
-// Shift RSI to top zone (120 to 220)
-rsiShifted = rsiValue + rsiOffset
-
-// Plot RSI
-plot(showRsi ? rsiShifted : na, "RSI", #b39ddb, 2)
+// Plot MACD (using original values without normalization)
+plot(showMacd ? histLine : na, "Histogram", histColor, style=plot.style_columns)
+plot(showMacd ? macdLine : na, "MACD", #2962FF, 1)
+plot(showMacd ? signalLine : na, "Signal", #FF6D00, 1)
 
 // ==================== Reference Lines ====================
-// MACD zone
 hline(0, "MACD Zero", color.gray, hline.style_dashed)
-
-// Divider
-hline(dividerLine, "── Divider ──", color.new(#ffffff, 50), hline.style_solid)
-
-// RSI zone (shifted by rsiOffset)
-rsiOverboughtLine = hline(rsiOverbought + rsiOffset, "Overbought (70)", color.new(#EF5350, 50), hline.style_dotted)
-rsiOversoldLine = hline(rsiOversold + rsiOffset, "Oversold (30)", color.new(#26A69A, 50), hline.style_dotted)
-hline(50 + rsiOffset, "RSI 50", color.new(#9e9e9e, 70), hline.style_dotted)
-
-// Fill overbought/oversold zones for RSI
-fill(rsiOverboughtLine, hline(220, "", color.new(color.white, 100)), color.new(#EF5350, 90), title="Overbought Zone")
-fill(rsiOversoldLine, hline(dividerLine, "", color.new(color.white, 100)), color.new(#26A69A, 90), title="Oversold Zone")
