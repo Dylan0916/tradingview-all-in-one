@@ -2,7 +2,7 @@
 // © TradingView Custom Indicator
 
 //@version=5
-indicator("All-in-One (EMA + WMA + MACD)", overlay=false)
+indicator("All-in-One (EMA + WMA + MACD)", overlay=false, max_lines_count=500, max_labels_count=500)
 
 // ==================== EMA Settings ====================
 emaGroup = "EMA Settings"
@@ -30,6 +30,15 @@ macdFastLength = input.int(12, "Fast Length", minval=1, group=macdGroup)
 macdSlowLength = input.int(26, "Slow Length", minval=1, group=macdGroup)
 macdSignalLength = input.int(9, "Signal Length", minval=1, group=macdGroup)
 macdSource = input.source(close, "MACD Source", group=macdGroup)
+
+// ==================== Divergence Settings ====================
+divGroup = "Divergence Settings"
+isDivergenceShown = input.bool(true, "Show Divergence", group=divGroup)
+pivotLookbackLeft = input.int(5, "Pivot Lookback Left", minval=1, group=divGroup)
+pivotLookbackRight = input.int(5, "Pivot Lookback Right", minval=1, group=divGroup)
+maxDivergenceRange = input.int(60, "Max Lookback Range", minval=10, maxval=200, group=divGroup)
+bullDivColor = input.color(#26A69A, "Bullish Divergence Color", group=divGroup)
+bearDivColor = input.color(#EF5350, "Bearish Divergence Color", group=divGroup)
 
 // ==================== EMA Calculations & Plots (Main Chart) ====================
 ema1 = ta.ema(close, ema1Length)
@@ -60,3 +69,48 @@ plot(showMacd ? signalLine : na, "MACD Signal", #FF6D00, 1)
 
 // ==================== Reference Lines ====================
 hline(0, "MACD Zero Line", color.gray, hline.style_dashed)
+
+// ==================== MACD Divergence Detection ====================
+// Detect pivot lows on MACD line (for bullish divergence)
+macdPivotLow = ta.pivotlow(macdLine, pivotLookbackLeft, pivotLookbackRight)
+// Detect pivot highs on MACD line (for bearish divergence)
+macdPivotHigh = ta.pivothigh(macdLine, pivotLookbackLeft, pivotLookbackRight)
+
+// Pivot found conditions
+bool plFound = not na(macdPivotLow)
+bool phFound = not na(macdPivotHigh)
+
+// ---- Bullish Divergence: Price makes lower low, MACD makes higher low ----
+// Use ta.valuewhen to get the current (occurrence=0) and previous (occurrence=1) pivot values
+float currMacdLow = ta.valuewhen(plFound, macdLine[pivotLookbackRight], 0)
+int currMacdLowBar = ta.valuewhen(plFound, bar_index[pivotLookbackRight], 0)
+float currPriceLow = ta.valuewhen(plFound, low[pivotLookbackRight], 0)
+
+float prevMacdLow = ta.valuewhen(plFound, macdLine[pivotLookbackRight], 1)
+int prevMacdLowBar = ta.valuewhen(plFound, bar_index[pivotLookbackRight], 1)
+float prevPriceLow = ta.valuewhen(plFound, low[pivotLookbackRight], 1)
+
+// Check bullish divergence: price lower low + MACD higher low
+bool isBullishDiv = plFound and currPriceLow < prevPriceLow and currMacdLow > prevMacdLow and (currMacdLowBar - prevMacdLowBar) <= maxDivergenceRange
+
+if isDivergenceShown and showMacd and isBullishDiv
+    // Draw line on MACD panel connecting the two MACD lows
+    line.new(prevMacdLowBar, prevMacdLow, currMacdLowBar, currMacdLow, color=bullDivColor, width=2)
+    label.new(currMacdLowBar, currMacdLow, "Bull", style=label.style_label_up, color=bullDivColor, textcolor=color.white, size=size.tiny)
+
+// ---- Bearish Divergence: Price makes higher high, MACD makes lower high ----
+float currMacdHigh = ta.valuewhen(phFound, macdLine[pivotLookbackRight], 0)
+int currMacdHighBar = ta.valuewhen(phFound, bar_index[pivotLookbackRight], 0)
+float currPriceHigh = ta.valuewhen(phFound, high[pivotLookbackRight], 0)
+
+float prevMacdHigh = ta.valuewhen(phFound, macdLine[pivotLookbackRight], 1)
+int prevMacdHighBar = ta.valuewhen(phFound, bar_index[pivotLookbackRight], 1)
+float prevPriceHigh = ta.valuewhen(phFound, high[pivotLookbackRight], 1)
+
+// Check bearish divergence: price higher high + MACD lower high
+bool isBearishDiv = phFound and currPriceHigh > prevPriceHigh and currMacdHigh < prevMacdHigh and (currMacdHighBar - prevMacdHighBar) <= maxDivergenceRange
+
+if isDivergenceShown and showMacd and isBearishDiv
+    // Draw line on MACD panel connecting the two MACD highs
+    line.new(prevMacdHighBar, prevMacdHigh, currMacdHighBar, currMacdHigh, color=bearDivColor, width=2)
+    label.new(currMacdHighBar, currMacdHigh, "Bear", style=label.style_label_down, color=bearDivColor, textcolor=color.white, size=size.tiny)
