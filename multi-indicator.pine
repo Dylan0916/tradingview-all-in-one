@@ -82,13 +82,16 @@ bool phFound = not na(macdPivotHigh)
 
 // ---- Bullish Divergence: Price makes lower low, MACD makes higher low ----
 // Use ta.valuewhen to get the current (occurrence=0) and previous (occurrence=1) pivot values
+// Use ta.lowest to find the actual lowest price in the pivot area (not just a single bar)
+float pivotAreaLow = ta.lowest(low, pivotLookbackLeft + pivotLookbackRight + 1)
+
 float currMacdLow = ta.valuewhen(plFound, macdLine[pivotLookbackRight], 0)
 int currMacdLowBar = ta.valuewhen(plFound, bar_index[pivotLookbackRight], 0)
-float currPriceLow = ta.valuewhen(plFound, low[pivotLookbackRight], 0)
+float currPriceLow = ta.valuewhen(plFound, pivotAreaLow, 0)
 
 float prevMacdLow = ta.valuewhen(plFound, macdLine[pivotLookbackRight], 1)
 int prevMacdLowBar = ta.valuewhen(plFound, bar_index[pivotLookbackRight], 1)
-float prevPriceLow = ta.valuewhen(plFound, low[pivotLookbackRight], 1)
+float prevPriceLow = ta.valuewhen(plFound, pivotAreaLow, 1)
 
 // Check bullish divergence: price lower low + MACD higher low
 bool isBullishDiv = plFound and currPriceLow < prevPriceLow and currMacdLow > prevMacdLow and (currMacdLowBar - prevMacdLowBar) <= maxDivergenceRange
@@ -99,13 +102,16 @@ if isDivergenceShown and showMacd and isBullishDiv
     label.new(currMacdLowBar, currMacdLow, "Bull", style=label.style_label_up, color=bullDivColor, textcolor=color.white, size=size.tiny)
 
 // ---- Bearish Divergence: Price makes higher high, MACD makes lower high ----
+// Use ta.highest to find the actual highest price in the pivot area
+float pivotAreaHigh = ta.highest(high, pivotLookbackLeft + pivotLookbackRight + 1)
+
 float currMacdHigh = ta.valuewhen(phFound, macdLine[pivotLookbackRight], 0)
 int currMacdHighBar = ta.valuewhen(phFound, bar_index[pivotLookbackRight], 0)
-float currPriceHigh = ta.valuewhen(phFound, high[pivotLookbackRight], 0)
+float currPriceHigh = ta.valuewhen(phFound, pivotAreaHigh, 0)
 
 float prevMacdHigh = ta.valuewhen(phFound, macdLine[pivotLookbackRight], 1)
 int prevMacdHighBar = ta.valuewhen(phFound, bar_index[pivotLookbackRight], 1)
-float prevPriceHigh = ta.valuewhen(phFound, high[pivotLookbackRight], 1)
+float prevPriceHigh = ta.valuewhen(phFound, pivotAreaHigh, 1)
 
 // Check bearish divergence: price higher high + MACD lower high
 bool isBearishDiv = phFound and currPriceHigh > prevPriceHigh and currMacdHigh < prevMacdHigh and (currMacdHighBar - prevMacdHighBar) <= maxDivergenceRange
