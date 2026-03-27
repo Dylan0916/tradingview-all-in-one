@@ -93,8 +93,17 @@ float prevMacdLow = ta.valuewhen(plFound, macdLine[pivotLookbackRight], 1)
 int prevMacdLowBar = ta.valuewhen(plFound, bar_index[pivotLookbackRight], 1)
 float prevPriceLow = ta.valuewhen(plFound, pivotAreaLow, 1)
 
-// Check bullish divergence: price lower low + MACD higher low
-bool isBullishDiv = plFound and currPriceLow < prevPriceLow and currMacdLow > prevMacdLow and (currMacdLowBar - prevMacdLowBar) <= maxDivergenceRange
+// Check if MACD stayed below zero between the two pivot lows (bullish requires all below zero)
+bool macdStayedBelowZero = true
+if plFound and (currMacdLowBar - prevMacdLowBar) <= maxDivergenceRange
+    int dist = currMacdLowBar - prevMacdLowBar
+    for i = 0 to dist
+        if macdLine[pivotLookbackRight + i] > 0
+            macdStayedBelowZero := false
+            break
+
+// Check bullish divergence: price lower low + MACD higher low + MACD stays below zero between pivots
+bool isBullishDiv = plFound and currPriceLow < prevPriceLow and currMacdLow > prevMacdLow and macdStayedBelowZero and (currMacdLowBar - prevMacdLowBar) <= maxDivergenceRange
 
 if isDivergenceShown and showMacd and isBullishDiv
     // Draw line on MACD panel connecting the two MACD lows
@@ -113,8 +122,17 @@ float prevMacdHigh = ta.valuewhen(phFound, macdLine[pivotLookbackRight], 1)
 int prevMacdHighBar = ta.valuewhen(phFound, bar_index[pivotLookbackRight], 1)
 float prevPriceHigh = ta.valuewhen(phFound, pivotAreaHigh, 1)
 
-// Check bearish divergence: price higher high + MACD lower high
-bool isBearishDiv = phFound and currPriceHigh > prevPriceHigh and currMacdHigh < prevMacdHigh and (currMacdHighBar - prevMacdHighBar) <= maxDivergenceRange
+// Check if MACD stayed above zero between the two pivot highs (bearish requires all above zero)
+bool macdStayedAboveZero = true
+if phFound and (currMacdHighBar - prevMacdHighBar) <= maxDivergenceRange
+    int dist = currMacdHighBar - prevMacdHighBar
+    for i = 0 to dist
+        if macdLine[pivotLookbackRight + i] < 0
+            macdStayedAboveZero := false
+            break
+
+// Check bearish divergence: price higher high + MACD lower high + MACD stays above zero between pivots
+bool isBearishDiv = phFound and currPriceHigh > prevPriceHigh and currMacdHigh < prevMacdHigh and macdStayedAboveZero and (currMacdHighBar - prevMacdHighBar) <= maxDivergenceRange
 
 if isDivergenceShown and showMacd and isBearishDiv
     // Draw line on MACD panel connecting the two MACD highs
